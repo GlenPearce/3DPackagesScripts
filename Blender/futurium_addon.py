@@ -99,7 +99,6 @@ class FORM_OT_maya_export(bpy.types.Operator):
 
         #!!!!insert file path name here!!!! use double \ like the example "F:\\3DWork\\Futurium\\HouseFixing\\"
         #name of the file is the name of the root mesh
-        #bpy.ops.export_scene.fbx(filepath= , use_selection=False, global_scale= 0.01 ,apply_scale_options= 'FBX_SCALE_ALL', use_metadata=True, check_existing=True, use_space_transform=False, use_visible=False, use_active_collection=True)
         bpy.ops.export_scene.fbx(filepath="F:\\3DWork\\Futurium\\HouseFixing\\" + obj.name + ".fbx", check_existing=True, filter_glob='*.fbx', use_selection=False,
                                  use_visible=False, use_active_collection=False, global_scale=0.01,
                                  apply_unit_scale=False, apply_scale_options='FBX_SCALE_ALL', use_space_transform=False,
