@@ -77,6 +77,7 @@ class FORM_OT_maya_export(bpy.types.Operator):
 
         #select all child objects of root object with exceptions
         for child_object in obj.children_recursive:
+            #Sets assets that were originally created in Maya to hidden, this ensure transforms are kept as they already match Maya
             if 'FakeInternals' in child_object.name or 'Curtain'  in child_object.name or 'Blinds'  in child_object.name:
                 child_object.hide_set(True)
             else:
