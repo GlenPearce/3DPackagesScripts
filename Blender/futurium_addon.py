@@ -51,7 +51,7 @@ class MAT_OT_reset_maya_mats(bpy.types.Operator):
             for n in mat.node_tree.nodes:
                 if n.type == 'BSDF_PRINCIPLED':
                     n.inputs["Metallic"].default_value = 0
-                    n.inputs["Specular"].default_value = 0
+                    n.inputs["Specular IOR Level"].default_value = 0
 
         return {'FINISHED'}  # Lets Blender know the operator finished successfully
 
