@@ -7,6 +7,8 @@ Futurium Add-on I created to speed up my sepecifc workflow at work. Currently it
 Move Pivot was made to easily move the pivot points on models. Comming from Maya, I wanted a similar way to move the pivot as I also use this point to snap the model to other meshes.
 Also when looking up originally how to move the pivot in default Blender, it seemed pretty long-winded when I was expecting just a single hotkey.
 
+Move and Scale plans is to take imported DXF files, set the pivots of each object to be central to the house and then move all to world space 0,0,0.
+The outer wall should be called Wall_Trad (upper or lower case). If this is not the case, contact me as I will need to adjust the code and way it is used.
 
 ///How to use ///
 
@@ -19,6 +21,8 @@ Move Pivot - Once installed, be sure to set a suitable shortcut (default is '=' 
 by default, it will snap to vertex and middle points of an edge, this can be changed by editing the snap elements on line 26 (will make UI in the future to prevent having to edit the script!)
 You can then move just the pivot as you would a mesh, using either the gizmo or the transform hotkey 'G'.
 
+Move and scale plans - After converting plans from DWG to DXF and edit to be only one floor of plans. Import into blender at scale 0.001 (Could change with other clients?) and switch off import text.
+Once loaded, select all and run the script.
 
 ///How to install Blender addons! ///
 
