@@ -38,8 +38,8 @@ class Futurium_Panel(bpy.types.Panel):
         row.operator("form.move_and_scale_dxf", text="Move and Scale Plans")
 
 
-
 # Class for resetting materials effected when importing maya lambert materials
+#This can occur when bringing in models with materials on from Maya to Blender, it resets specular, metallic and opaque to off/0, only ideal for viewport editing
 class MAT_OT_reset_maya_mats(bpy.types.Operator):
     bl_idname = "mat.reset_maya_mats"  # Unique identifier for buttons and menu items to reference.
     bl_label = "Reset Mats effected by Maya Import"  # Display name in the interface.
@@ -62,6 +62,7 @@ class MAT_OT_reset_maya_mats(bpy.types.Operator):
         return {'FINISHED'}  # Lets Blender know the operator finished successfully
 
 #Class for moving and scaling imported DXF files
+#This converts curves to meshes, unparents objects. deletes empties, sets to single user, move and corrects pivots on all objects.
 class FORM_OT_move_scale_dxf(bpy.types.Operator):
     bl_idname = "form.move_and_scale_dxf"  # Unique identifier for buttons and menu items to reference.
     bl_label = "move and scale selected DXF plans"  # Display name in the interface.
