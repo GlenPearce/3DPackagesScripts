@@ -8,10 +8,33 @@ bl_info = {
 
 import bpy
 import math
+from bpy.props import (StringProperty,
+                       BoolProperty,
+                       IntProperty,
+                       FloatProperty,
+                       FloatVectorProperty,
+                       EnumProperty,
+                       PointerProperty,
+                       )
+from bpy.types import (Panel,
+                       Menu,
+                       Operator,
+                       PropertyGroup,
+                       )
+#Properties for export location string
+class MySettings(PropertyGroup):
+    filepath: bpy.props.StringProperty(
+        name="FilePath",
+        subtype = 'DIR_PATH',
+        description="Choose export location",
+        default="",
+        maxlen=1024,
+    )
+
 
 #class for panel UI layout/setup
 class Futurium_Panel(bpy.types.Panel):
-    pass
+
     # where the panel gets added
     bl_space_type = "VIEW_3D"  # gets shown in 3d viewport
     bl_region_type = "UI"  # referencing sidebar region
@@ -23,9 +46,18 @@ class Futurium_Panel(bpy.types.Panel):
     # Draw out buttons/layout, add more buttons and layout options here
     def draw(self, context):
         """define the layout of the panel"""
+        layout  = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False  # No animation.
+
+        scene = context.scene
+        mytool = scene.my_tool
 
         row = self.layout.row()
+        row.label(text="Maya Tools")
+        row = self.layout.row()
         row.operator("form.maya_export", text="Maya Export")
+        layout.prop(mytool, "filepath")
 
         self.layout.separator()
 
@@ -35,7 +67,12 @@ class Futurium_Panel(bpy.types.Panel):
         self.layout.separator()
 
         row = self.layout.row()
-        row.operator("form.move_and_scale_dxf", text="Move and Scale Plans")
+        row.label(text="House Creation")
+        row = self.layout.row()
+        row.operator("form.move_and_scale_dxf", text="Move and Scale DXF Plans")
+
+        row = self.layout.row()
+        row.operator("form.square_topology", text="Square Topology")
 
 
 # Class for resetting materials effected when importing maya lambert materials
@@ -161,6 +198,9 @@ class FORM_OT_maya_export(bpy.types.Operator):
         #store selected object and all children of object
         obj = bpy.context.active_object
 
+            #allows use of file path string
+        mytool = context.scene.my_tool
+
         # change the scale & rotation to match Maya and apply
         obj.scale = (100, 100, 100)
         obj.rotation_euler[0] = -1.5708
@@ -168,15 +208,28 @@ class FORM_OT_maya_export(bpy.types.Operator):
         # Apply transforms to root object
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
 
+        excluded_names = (
+            'FakeInternals',
+            'Lighting',
+            'SwitchesSockets',
+            'Appliances',
+            'Props',
+            'InteriorDoors'
+        )
         #select all child objects of root object with exceptions
+        #hides children of exluded names for empties, to keep their transforms
+        #ignores empties and applies transforms to empties unless they are called disc (lighting locations)
         for child_object in obj.children_recursive:
+            if child_object.type == 'EMPTY' and any(name in child_object.name for name in excluded_names):
+                for childchild_object in child_object.children_recursive:
+                    if childchild_object.type == 'MESH' or 'Disc' in childchild_object.name:
+                        childchild_object.hide_set(True)
+                    else:
+                        childchild_object.select_set(True)
 
-            #Sets assets that were originally created in Maya to hidden, this ensure transforms are kept as they already match Maya,
-            # !Enter the names of objects that are required to have their transforms kept here!
-            if 'FakeInternals' in child_object.name or 'Curtain'  in child_object.name or 'Blinds'  in child_object.name:
-                child_object.hide_set(True)
             else:
                 child_object.select_set(True)
+
         child_objects = bpy.context.selected_objects
         bpy.context.view_layer.objects.active = None  # Unset active object
 
@@ -187,14 +240,18 @@ class FORM_OT_maya_export(bpy.types.Operator):
             print(child.name + "Applied")
             print("Transforms Applied: " + str(bpy.context.view_layer.objects.active))
             if child.name == 'BackDoorNode':
-                child.rotation_euler[2] = math.radians(180)
+                bpy.context.active_object.rotation_euler = (0, 0, math.radians(180))
+
+            if 'Tag' in child_object.name and child_object.type != 'EMPTY':
+                        bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
+
             bpy.context.view_layer.objects.active = None
 
         bpy.context.view_layer.objects.active = obj
 
         #!!!!insert file path name here!!!! use double \ like the example "F:\\3DWork\\Futurium\\HouseFixing\\"
         #name of the file is the name of the root mesh
-        bpy.ops.export_scene.fbx(filepath="F:\\3DWork\\Futurium\\HouseFixing\\" + obj.name + ".fbx", check_existing=True, filter_glob='*.fbx', use_selection=False,
+        bpy.ops.export_scene.fbx(filepath=mytool.filepath + obj.name + ".fbx", check_existing=True, filter_glob='*.fbx', use_selection=False,
                                  use_visible=False, use_active_collection=False, global_scale=0.01,
                                  apply_unit_scale=False, apply_scale_options='FBX_SCALE_ALL', use_space_transform=False,
                                  bake_space_transform=False,
@@ -209,9 +266,8 @@ class FORM_OT_maya_export(bpy.types.Operator):
                                  bake_anim_step=1.0, bake_anim_simplify_factor=1.0, path_mode='AUTO',
                                  embed_textures=False, batch_mode='OFF', use_batch_own_dir=True, use_metadata=True,
                                  axis_forward='-Z', axis_up='Y')
-        # figure out how to keep rotations and scales, probably store values then reset and add them back on?
 
-        # Reset the maya transforms put on the objects
+        # Set the maya transform values
         obj.scale = (.01, .01, .01)
         obj.rotation_euler[0] = 1.5708
 
@@ -221,21 +277,107 @@ class FORM_OT_maya_export(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class FORM_OT_square_toplogy(bpy.types.Operator):
+    bl_idname = "form.square_topology"  # Unique identifier for buttons and menu items to reference.
+    bl_label = "Applies squared topology to selected mesh "  # Display name in the interface.
+    bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
+    def execute(self, context):  # execute() is called when running the operator.
+
+        # Select the object you want to bisect
+        obj = bpy.context.active_object
+        bpy.context.view_layer.objects.active = obj
+
+        if bpy.context.active_object == None:
+            self.report({'INFO'}, "Need an Object selected.")
+            return {'CANCELLED'}
+
+
+        # Switch to Edit mode
+        bpy.ops.object.mode_set(mode='EDIT')
+
+        mesh = bpy.context.edit_object.data
+
+        bpy.ops.mesh.select_mode(type='VERT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.mesh.remove_doubles(threshold=0.001)
+
+        bpy.ops.mesh.select_all(action='DESELECT')
+
+        bpy.ops.mesh.edges_select_sharp(sharpness=0.5)
+        bpy.ops.mesh.mark_sharp()
+
+        bpy.ops.mesh.select_all(action='DESELECT')
+
+        obj_index = obj.pass_index
+
+        print(obj_index)
+
+        bpy.ops.mesh.select_all(action='DESELECT')
+
+        # Loop to create bisect loop cuts for each vertex, loops through twice to help with seperated mesh islands
+        for i in range(2):
+            for vert in mesh.vertices:
+                # get vertex index
+                vert_index = vert.index
+
+                bpy.ops.mesh.select_all(action='DESELECT')
+                bpy.ops.mesh.select_linked_pick(deselect=False, delimit={'SHARP'}, object_index=obj_index,
+                                                index=vert_index)
+
+                # Y Axis Cut
+                bpy.ops.mesh.bisect(plane_co=(vert.co), plane_no=(1.0, 0, 0), use_fill=False, clear_inner=False,
+                                    clear_outer=False, threshold=0.001, xstart=0, xend=0, ystart=0, yend=0, flip=False,
+                                    cursor=0)
+
+                bpy.ops.mesh.select_all(action='DESELECT')
+
+                bpy.ops.mesh.select_linked_pick(deselect=False, delimit={'SHARP'}, object_index=obj_index,
+                                                index=vert_index)
+
+                # X Axis Cut
+                bpy.ops.mesh.bisect(plane_co=(vert.co), plane_no=(0, -1.0, 0), use_fill=False, clear_inner=False,
+                                    clear_outer=False, threshold=0.001, xstart=0, xend=0, ystart=0, yend=0, flip=False,
+                                    cursor=0)
+
+                bpy.ops.mesh.select_all(action='DESELECT')
+                bpy.ops.mesh.select_all(action='SELECT')
+
+                # Z Axis Cut
+                bpy.ops.mesh.bisect(plane_co=(vert.co), plane_no=(0, 0, 1.0), use_fill=False, clear_inner=False,
+                                    clear_outer=False, threshold=0.001, xstart=0, xend=0, ystart=0, yend=0, flip=False,
+                                    cursor=0)
+
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.remove_doubles(threshold=0.001)
+
+        return {'FINISHED'}
+
 
 # to enable and disable the add-on, register classes here
 
+classes = (
+        MAT_OT_reset_maya_mats,
+        FORM_OT_maya_export,
+        FORM_OT_move_scale_dxf,
+        FORM_OT_square_toplogy,
+        MySettings,
+        Futurium_Panel
+)
+
 def register():
-    bpy.utils.register_class(MAT_OT_reset_maya_mats)
-    bpy.utils.register_class(FORM_OT_maya_export)
-    bpy.utils.register_class(FORM_OT_move_scale_dxf)
-    bpy.utils.register_class(Futurium_Panel)
+    from bpy.utils import register_class
+    for cls in classes:
+        register_class(cls)
+
+    bpy.types.Scene.my_tool = PointerProperty(type=MySettings)
 
 
 def unregister():
-    bpy.utils.unregister_class(MAT_OT_reset_maya_mats)
-    bpy.utils.unregister_class(FORM_OT_maya_export)
-    bpy.utils.unregister_class(FORM_OT_move_scale_dxf)
-    bpy.utils.unregister_class(Futurium_Panel)
+    from bpy.utils import unregister_class
+    for cls in reversed(classes):
+        unregister_class(cls)
+    del bpy.types.Scene.my_tool
+
 
 
 # This allows you to run the script directly from Blender's Text editor
