@@ -69,7 +69,7 @@ class Futurium_Panel(bpy.types.Panel):
         row = self.layout.row()
         row.label(text="House Creation")
         row = self.layout.row()
-        row.operator("form.move_and_scale_dxf", text="Move and Scale DXF Plans")
+        row.operator("form.move_dxf", text="Move DXF Plans")
 
         row = self.layout.row()
         row.operator("form.square_topology", text="Square Topology")
@@ -100,9 +100,9 @@ class MAT_OT_reset_maya_mats(bpy.types.Operator):
 
 #Class for moving and scaling imported DXF files
 #This converts curves to meshes, unparents objects. deletes empties, sets to single user, move and corrects pivots on all objects.
-class FORM_OT_move_scale_dxf(bpy.types.Operator):
-    bl_idname = "form.move_and_scale_dxf"  # Unique identifier for buttons and menu items to reference.
-    bl_label = "move and scale selected DXF plans"  # Display name in the interface.
+class FORM_OT_move_dxf(bpy.types.Operator):
+    bl_idname = "form.move_dxf"  # Unique identifier for buttons and menu items to reference.
+    bl_label = "move and sort pivot of selected DXF plans"  # Display name in the interface.
     bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
 
     def execute(self, context):  # execute() is called when running the operator.
@@ -111,19 +111,14 @@ class FORM_OT_move_scale_dxf(bpy.types.Operator):
 
         import bpy
 
-        # The amount I've found that the plans need to be scaled by to be accurate
-        desired_scale = (1, 1, 1)
-
         # Changes transform pivot point to bounding box to ensure the pivot goes in the middle of the outer walls
         bpy.context.scene.tool_settings.transform_pivot_point = 'BOUNDING_BOX_CENTER'
 
-        # This was the naming used for the outer walls on the plans; might change to just be the active object if different for each plan
-        object_name = 'WALL_TRAD'
+        # Select the desired object to have as the pivot centre as active object
+        pivot_obj = bpy.context.active_object
 
         # Stores selected objects
         selected_objects = bpy.context.selected_objects
-
-        outer_walls = None
 
         # go through selected, convert curves to meshes and unparents any that need it
         for obj in selected_objects:
@@ -131,27 +126,24 @@ class FORM_OT_move_scale_dxf(bpy.types.Operator):
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.make_single_user(object=True, obdata=True, material=False, animation=False)
 
-            # unparents all and keeps transforms
-            bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
-
             # converts curves to meshes
             if obj.type == 'CURVE':
-                bpy.ops.object.convert(target='MESH', ccontext_override=bpy.context.copy())
+                bpy.ops.object.convert(target='MESH', )
 
-        # Checks for 'WALL_TRAD' in the current selected objects
-        for obj in selected_objects:
-            if object_name.lower() in obj.name.lower():
-                bpy.context.view_layer.objects.active = obj
-                outer_walls = obj
+            #Clears any previous transforms (found random rotations on some plans which effected unparenting)
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+            # unparents all and keeps transforms
+            bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
 
         # Deselect all objects
         bpy.ops.object.select_all(action='DESELECT')
 
-        # Select the outer_walls object & set as active
-        outer_walls.select_set(True)
-        bpy.context.view_layer.objects.active = outer_walls
+        # Select the pivot_obj object & set as active
+        pivot_obj.select_set(True)
+        bpy.context.view_layer.objects.active = pivot_obj
 
-        # Sets the outer wall pivot to be central to the mesh, then moves the 3D cursor to that location
+        # Sets the active pivot to be central to the mesh, then moves the 3D cursor to that location
         bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
         bpy.context.scene.cursor.location = bpy.context.view_layer.objects.active.location
 
@@ -160,11 +152,8 @@ class FORM_OT_move_scale_dxf(bpy.types.Operator):
             obj.select_set(True)
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='BOUNDS')
-            bpy.context.view_layer.objects.active.scale = desired_scale
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
 
-        # Switch to the 3D View context
-        # bpy.context.area.type = 'VIEW_3D'
 
         bpy.ops.view3d.snap_cursor_to_center()
 
@@ -173,9 +162,8 @@ class FORM_OT_move_scale_dxf(bpy.types.Operator):
 
         # Snap selected objects to the cursor
         for obj in selected_objects:
-            # bpy.context.area.type = 'VIEW_3D'
             bpy.ops.view3d.snap_selected_to_cursor(use_offset=False)
-            # bpy.context.area.type = 'TEXT_EDITOR'
+
 
         # deletes leftover empties
         for obj in selected_objects:
@@ -183,6 +171,11 @@ class FORM_OT_move_scale_dxf(bpy.types.Operator):
                 obj.select_set(False)
 
         bpy.ops.object.delete()
+
+        #reselects the original objects
+        for obj in selected_objects:
+            obj.select_set(True)
+        bpy.context.view_layer.objects.active = pivot_obj
 
         return {'FINISHED'}  # Lets Blender know the operator finished successfully
 
@@ -358,7 +351,7 @@ class FORM_OT_square_toplogy(bpy.types.Operator):
 classes = (
         MAT_OT_reset_maya_mats,
         FORM_OT_maya_export,
-        FORM_OT_move_scale_dxf,
+        FORM_OT_move_dxf,
         FORM_OT_square_toplogy,
         MySettings,
         Futurium_Panel
