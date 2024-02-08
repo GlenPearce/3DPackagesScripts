@@ -67,10 +67,14 @@ class Futurium_Panel(bpy.types.Panel):
         self.layout.separator()
 
         row = self.layout.row()
-        row.label(text="House Creation")
+        row.label(text="Plans")
         row = self.layout.row()
-        row.operator("form.move_dxf", text="Move DXF Plans")
+        row.operator("form.move_dxf", text="Move DXF Plans").angle = math.radians(0)
+        row = self.layout.row()
+        row.operator("form.move_dxf", text="Move DXF Plans Stairs").angle = math.radians(-90)
 
+        row = self.layout.row()
+        row.label(text="House Creation")
         row = self.layout.row()
         row.operator("form.square_topology", text="Square Topology")
 
@@ -104,6 +108,8 @@ class FORM_OT_move_dxf(bpy.types.Operator):
     bl_idname = "form.move_dxf"  # Unique identifier for buttons and menu items to reference.
     bl_label = "move and sort pivot of selected DXF plans"  # Display name in the interface.
     bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
+
+    angle: bpy.props.FloatProperty(name="Angle", default=0, step=math.radians(90), subtype='ANGLE')
 
     def execute(self, context):  # execute() is called when running the operator.
         # Once the user selects the parts of the plans needed for the model, this script takes each part, sets the pivot to be central
@@ -163,6 +169,7 @@ class FORM_OT_move_dxf(bpy.types.Operator):
         # Snap selected objects to the cursor
         for obj in selected_objects:
             bpy.ops.view3d.snap_selected_to_cursor(use_offset=False)
+            obj.rotation_euler.rotate_axis('Y', self.angle)
 
 
         # deletes leftover empties
@@ -352,6 +359,7 @@ classes = (
         MAT_OT_reset_maya_mats,
         FORM_OT_maya_export,
         FORM_OT_move_dxf,
+FORM_OT_move_dxf_stairs,
         FORM_OT_square_toplogy,
         MySettings,
         Futurium_Panel
