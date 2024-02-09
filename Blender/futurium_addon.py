@@ -32,8 +32,10 @@ class MySettings(PropertyGroup):
     )
 
 
-#class for panel UI layout/setup
 class Futurium_Panel(bpy.types.Panel):
+    """
+    Layout of the panel
+    """
 
     # where the panel gets added
     bl_space_type = "VIEW_3D"  # gets shown in 3d viewport
@@ -77,13 +79,17 @@ class Futurium_Panel(bpy.types.Panel):
         row.label(text="House Creation")
         row = self.layout.row()
         row.operator("form.square_topology", text="Square Topology")
+        row = self.layout.row()
+        row.operator("form.rename_by_material", text="Rename by Material")
+        row = self.layout.row()
+        row.operator("form.brick_uv", text="UV Bricks")
 
-
-# Class for resetting materials effected when importing maya lambert materials
-#This can occur when bringing in models with materials on from Maya to Blender, it resets specular, metallic and opaque to off/0, only ideal for viewport editing
 class MAT_OT_reset_maya_mats(bpy.types.Operator):
+    """
+    Resets Materials affected when importing Maya Lambert materials into Blender
+    """
     bl_idname = "mat.reset_maya_mats"  # Unique identifier for buttons and menu items to reference.
-    bl_label = "Reset Mats effected by Maya Import"  # Display name in the interface.
+    bl_label = "Reset Mats affected by Maya Import"  # Display name in the interface.
     bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
 
     def execute(self, context):  # execute() is called when running the operator.
@@ -102,9 +108,11 @@ class MAT_OT_reset_maya_mats(bpy.types.Operator):
 
         return {'FINISHED'}  # Lets Blender know the operator finished successfully
 
-#Class for moving and scaling imported DXF files
-#This converts curves to meshes, unparents objects. deletes empties, sets to single user, move and corrects pivots on all objects.
+
 class FORM_OT_move_dxf(bpy.types.Operator):
+    """
+    Once DXF plans are imported, use this tool to set the pivot of each componant to be central to the active object. Also un parents, deletes empties and converts curves.
+    """
     bl_idname = "form.move_dxf"  # Unique identifier for buttons and menu items to reference.
     bl_label = "move and sort pivot of selected DXF plans"  # Display name in the interface.
     bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
@@ -186,9 +194,10 @@ class FORM_OT_move_dxf(bpy.types.Operator):
 
         return {'FINISHED'}  # Lets Blender know the operator finished successfully
 
-
-# Class for setting the transforms to be like Maya on the selected object
 class FORM_OT_maya_export(bpy.types.Operator):
+    """
+    Export a house made in Blender, with the correct transforms to match Maya. Excludes children of empties that should contain assets already with these transforms.
+    """
     bl_idname = "form.maya_export"  # Unique identifier for buttons and menu items to reference.
     bl_label = "Applies transform values to match Maya and exports "  # Display name in the interface.
     bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
@@ -278,6 +287,9 @@ class FORM_OT_maya_export(bpy.types.Operator):
         return {'FINISHED'}
 
 class FORM_OT_square_toplogy(bpy.types.Operator):
+    """
+    Squares off topology, mainly used for carpet and exterior walls after using the geometry nodes tool to create the house.
+    """
     bl_idname = "form.square_topology"  # Unique identifier for buttons and menu items to reference.
     bl_label = "Applies squared topology to selected mesh "  # Display name in the interface.
     bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
@@ -351,6 +363,63 @@ class FORM_OT_square_toplogy(bpy.types.Operator):
             bpy.ops.mesh.remove_doubles(threshold=0.001)
 
         return {'FINISHED'}
+class FORM_OT_rename_by_material(bpy.types.Operator):
+    """
+    Once the geometry nodes tool is used to create the house, it should then be seperated by material. This tool then applies the correct naming to each mesh depending on the material applied.
+    """
+    bl_idname = "form.rename_by_material"  # Unique identifier for buttons and menu items to reference.
+    bl_label = "Renames the house meshes depending on material"  # Display name in the interface.
+    bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
+
+    def execute(self, context):  # execute() is called when running the operator.
+
+        for obj in  bpy.context.selected_objects:
+            if obj.type == 'MESH' and len(obj.data.materials) > 0:
+                # Get the name of the first material assigned to the object
+                material_name = obj.data.materials[0].name
+
+                # Remove the first 4 letters from the material name (Ext_ or Int_)
+                new_name = material_name[4:]
+
+                # Rename the object with the modified name
+                obj.name = new_name
+
+#Naming exceptions
+            if obj.name == "AstonRedSandface":
+                obj.name = "LowBrick"
+
+            else:
+                self.report({'INFO'}, "Some Objects were not meshes or did not have materials.")
+
+        return {'FINISHED'}
+class FORM_OT_brick_uv(bpy.types.Operator):
+    """
+    UV's selected brick meshes to the correct scale and also moves down slightly to line up grout line corretly
+    """
+
+    bl_idname = "form.brick_uv"  # Unique identifier for buttons and menu items to reference.
+    bl_label = "Applies correct scale brick UVs"  # Display name in the interface.
+    bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
+
+    def execute(self, context):  # execute() is called when running the operator.
+
+        bpy.ops.object.mode_set(mode="EDIT")
+
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        bpy.ops.uv.muv_uvw_box_map(size=14.4, rotation=(0, 0, 0), tex_aspect=1, assign_uvmap=True)
+
+        original_area = bpy.context.area.type
+
+        for obj in bpy.context.selected_objects:
+            bpy.context.area.ui_type = 'UV'
+            # Move UV map down by 1mm on the Y-axis
+            bpy.ops.uv.select_all(action='SELECT')
+            bpy.ops.transform.translate(value=(0, 0.00022, 0))
+            bpy.context.area.ui_type = original_area
+
+
+        return {'FINISHED'}
 
 
 # to enable and disable the add-on, register classes here
@@ -359,8 +428,9 @@ classes = (
         MAT_OT_reset_maya_mats,
         FORM_OT_maya_export,
         FORM_OT_move_dxf,
-FORM_OT_move_dxf_stairs,
         FORM_OT_square_toplogy,
+FORM_OT_rename_by_material,
+FORM_OT_brick_uv,
         MySettings,
         Futurium_Panel
 )
