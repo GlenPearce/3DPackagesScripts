@@ -363,6 +363,7 @@ class FORM_OT_square_toplogy(bpy.types.Operator):
             bpy.ops.mesh.remove_doubles(threshold=0.001)
 
         return {'FINISHED'}
+
 class FORM_OT_rename_by_material(bpy.types.Operator):
     """
     Once the geometry nodes tool is used to create the house, it should then be seperated by material. This tool then applies the correct naming to each mesh depending on the material applied.
@@ -384,7 +385,11 @@ class FORM_OT_rename_by_material(bpy.types.Operator):
                 # Rename the object with the modified name
                 obj.name = new_name
 
-#Naming exceptions
+
+
+                #Naming exceptions
+            if obj.name == "ColleridgeYellow":
+                obj.name = "Brick"
             if obj.name == "AstonRedSandface":
                 obj.name = "LowBrick"
 
@@ -392,6 +397,7 @@ class FORM_OT_rename_by_material(bpy.types.Operator):
                 self.report({'INFO'}, "Some Objects were not meshes or did not have materials.")
 
         return {'FINISHED'}
+
 class FORM_OT_brick_uv(bpy.types.Operator):
     """
     UV's selected brick meshes to the correct scale and also moves down slightly to line up grout line corretly
