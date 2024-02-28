@@ -30,9 +30,15 @@ class MySettings(PropertyGroup):
         default="",
         maxlen=1024,
     )
+    front_door_type: bpy.props.IntProperty(
+        name = "FrontDoorType",
+        description = "Choose front door style",
+        default = 0,
+        max = 99,
+    )
 
 
-class Futurium_Panel(bpy.types.Panel):
+class PANEL_PT_Futurium_Panel(bpy.types.Panel):
     """
     Layout of the panel
     """
@@ -78,11 +84,16 @@ class Futurium_Panel(bpy.types.Panel):
         row = self.layout.row()
         row.label(text="House Creation")
         row = self.layout.row()
-        row.operator("form.square_topology", text="Square Topology")
-        row = self.layout.row()
         row.operator("form.rename_by_material", text="Rename by Material")
         row = self.layout.row()
+        row.operator("form.square_topology", text="Square Topology")
+        row = self.layout.row()
         row.operator("form.brick_uv", text="UV Bricks")
+        row = self.layout.row()
+        row.operator("form.front_door", text="Place Front Door")
+        layout.prop(mytool, "front_door_type")
+
+
 
 class MAT_OT_reset_maya_mats(bpy.types.Operator):
     """
@@ -258,8 +269,7 @@ class FORM_OT_maya_export(bpy.types.Operator):
 
         bpy.context.view_layer.objects.active = obj
 
-        #!!!!insert file path name here!!!! use double \ like the example "F:\\3DWork\\Futurium\\HouseFixing\\"
-        #name of the file is the name of the root mesh
+        #Import FBX, file path is chosen by clicking the file icon on the panel of the add-on
         bpy.ops.export_scene.fbx(filepath=mytool.filepath + obj.name + ".fbx", check_existing=True, filter_glob='*.fbx', use_selection=False,
                                  use_visible=False, use_active_collection=False, global_scale=0.01,
                                  apply_unit_scale=False, apply_scale_options='FBX_SCALE_ALL', use_space_transform=False,
@@ -427,18 +437,75 @@ class FORM_OT_brick_uv(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class FORM_OT_place_front_door(bpy.types.Operator):
+    """
+    places the chosen front door, at the location of the temporary point made by running the geometry nodes tool
+    """
+
+    bl_idname = "form.front_door"  # Unique identifier for buttons and menu items to reference.
+    bl_label = "Places the chosen front door to the temporary location made with the house tool"  # Display name in the interface.
+    bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
+
+    def execute(self, context):  # execute() is called when running the operator.
+        #use of int input
+        mytool = context.scene.my_tool
+        front_door = mytool.front_door_type
+
+        temp_location_name = 'Front_Door'
+        location_to_snap = None
+
+        #find index of collection that the generated house should be in
+        target_collection = bpy.data.collections.find("CreatedHouse")
+        if not target_collection:
+            self.report({'INFO'}, "No CreatedHouse collection, make one and throw the generated house in it.")
+            return {'CANCELLED'}
+        
+        #set the temp location as active, set origin to centre
+        if temp_location_name in bpy.data.objects:
+            bpy.context.view_layer.objects.active = bpy.data.objects[temp_location_name]
+            bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
+            location_to_snap = bpy.context.view_layer.objects.active
+
+        else:
+            self.report({'INFO'}, "Front_Door not found. Run the house tool and seperate as shown in docs.")
+            return {'CANCELLED'}
+
+        #converts front door location into empty, this can then be dragged into the main heirachy with the rest of the door parts
+        bpy.ops.object.empty_add(location= location_to_snap.location)
+
+        #select the chosen door, duplicate and set its position to the front door empty position
+        #move the dupliacted objects and make them children objects of the front door empty
+        bpy.ops.object.select_all(action='DESELECT')
+        front_door_size = "FrontDoors_1023mm"
+        bpy.context.view_layer.objects.active = bpy.data.objects[front_door_size].children[front_door]
+        for child in bpy.context.view_layer.objects.active.children:
+            child.select_set(True)
+        bpy.ops.object.duplicate_move(TRANSFORM_OT_translate = {"value": location_to_snap.location})
+
+
+        bpy.ops.object.move_to_collection(collection_index=target_collection)
+        bpy.context.view_layer.objects.active = location_to_snap
+        bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
+        
+
+        self.report({'INFO'}, "updated")
+
+        return {'FINISHED'}
+
+
 
 # to enable and disable the add-on, register classes here
 
 classes = (
-        MAT_OT_reset_maya_mats,
-        FORM_OT_maya_export,
-        FORM_OT_move_dxf,
-        FORM_OT_square_toplogy,
-FORM_OT_rename_by_material,
-FORM_OT_brick_uv,
-        MySettings,
-        Futurium_Panel
+    MAT_OT_reset_maya_mats,
+    FORM_OT_maya_export,
+    FORM_OT_move_dxf,
+    FORM_OT_square_toplogy,
+    FORM_OT_rename_by_material,
+    FORM_OT_brick_uv,
+    MySettings,
+    PANEL_PT_Futurium_Panel,
+    FORM_OT_place_front_door
 )
 
 def register():

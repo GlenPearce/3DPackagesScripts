@@ -1,22 +1,27 @@
 ///Why these add ons? ///
 
-Futurium Add-on I created to speed up my sepecifc workflow at work. Currently it has 2 features. 
- - A tool to reset specular, metallic and opacity to default on materials as Maya files, imported into Blender change up these values. This in turn effects the model in the viewport when brought back into Maya.
- - An Exporter to export a model with the correct transform values to match Maya.
-
-Move and Scale plans is to take imported DXF files, set the pivots of each object to be central to the house and then move all to world space 0,0,0.
-The outer wall should be called Wall_Trad (upper or lower case). If this is not the case, contact me as I will need to adjust the code and way it is used.
+To make working between maya and blender as easy as possible. Also new features to work alongside the house generating tool created in geometry nodes.
 
 
 ///How to use ///
 
-Futurium Add-on - The material reset button works as is and resets the specified values mentioned above.
-The exporter requires some script editing until I implement some UI options for the user. Set the save path on line 104. The name of the file saves as the name of the root mesh.
-You can also input objects to be exluded (keep their transforms, e.g. assets originally made in Maya and imported into Blender, without their transforms changed). Do this on Line 83, put in part of the name or the full name.
-!!this does reset scale and rotation values on export, if this doesnt work for your situation, don't use!!
+Maya Export - Currently a scale bug so beware, comes in maya at 100x scale since changing to adding interiors onto exporter.
+Select root of house, choose filepath in the panel, button then exports root and all children, applying correct transforms but leaving child objects specified in the code.
 
-Move and scale plans - After converting plans from DWG to DXF and editing to be only one page of the plans. Import into blender at scale 0.001 (Could change with other clients?) and switch off import text.
-Once loaded, select all, choose which object you want the pivot to be central of by making it the active object (e.g Outer Walls or Screed for stairs plans), then run the script.
+Reset Maya Mats - sets spec and metal to 0 on button press for all materials. Also changes materials to opaque. Prevents shiney materials when brought into Maya, materials in Unity unaffected.
+
+/Plans + House creating tools/
+Put in order of use on the add-on
+
+Move DXF Plans - Following the house tool documentation, use this button once seperate componants of plans are selected, set outer wall as active, then run this to move to 0,0,0 with correct pivot on all.
+
+Move DXF Plans Stairs - Same as above but for use on section plans.
+
+Rename by Material - Once the house tool is run, it comes through as one mesh, seperate by material (Select all in edit mode, then 'P'), Then run this to rename each mesh, based on what material is applied.
+
+Square topology - WIP (currently needs a few presses to sqaure off topology). Select outer brick or flooring, use this button to square the topology.
+
+UV Bricks - Once meshes are seperate, click brick meshes and use this to UV to correct scale, still requires manual adjustments at house corners and windows/doors.
 
 
 ///How to install Blender addons! ///
