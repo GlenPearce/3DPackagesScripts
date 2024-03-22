@@ -50,7 +50,6 @@ class PANEL_PT_Panel(bpy.types.Panel):
         row.operator("form.paint_face", text="Paint Purple").color = (1,0,1,1)
         row = self.layout.row()
         row.operator("form.paint_face", text="Paint Orange").color = (1,0.5,0,1)
-        row.operator("form.paint_face", text="Paint Pink").color = (1,0.5,0.5,1)
 
 
 
