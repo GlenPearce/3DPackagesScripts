@@ -58,7 +58,6 @@ class MAT_OT_Paint(bpy.types.Operator):
     Select faces on an object and quickly paint them, from a choice of colours
     """
 
-
     bl_idname = "form.paint_face"  # Unique identifier for buttons and menu items to reference.
     bl_label = "Applies selected colour to selected faces "  # Display name in the interface.
     bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
