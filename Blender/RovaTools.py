@@ -11,6 +11,7 @@ bl_info = {
 
 import bpy
 import random
+import os
 
 
 class PANEL_PT_Panel(bpy.types.Panel):
@@ -33,6 +34,9 @@ class PANEL_PT_Panel(bpy.types.Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
+        #Panel layout & buttons
+        row = self.layout.row()
+        row.operator("form.resource_import", text="Import Rova Resources")
         row = self.layout.row()
         row.label(text="Select faces in edit mode, then choose a colour below")
         row = self.layout.row()
@@ -49,7 +53,6 @@ class PANEL_PT_Panel(bpy.types.Panel):
         row.operator("form.paint_face", text="Cyan").color = (0,1,1,1)
         row.operator("form.paint_face", text="Purple").color = (1,0,1,1)
         row.operator("form.paint_face", text="Orange").color = (1,0.5,0,1)
-
 
 
 class MAT_OT_Paint(bpy.types.Operator):
@@ -104,6 +107,30 @@ class MAT_OT_Paint(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='EDIT')
 
 
+        return {'FINISHED'}
+
+
+class FORM_OT_resource_import(bpy.types.Operator):
+
+
+    """
+    Imports any geometry node tools, debug material and models used for Rova
+    """
+
+    bl_idname = "form.resource_import"  # Unique identifier for buttons and menu items to reference.
+    bl_label = "Imports geometry node tool, texture atlas, debug material and colonist ref mesh "  # Display name in the interface.
+    bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
+
+
+    def execute(self, context):  # execute() is called when running the operator.
+
+        #gets file path of the location the script is currently in, this is because the resource .blend file is in here too
+        path = os.path.join(os.path.dirname(__file__), 'RovaResources.blend')
+
+        with bpy.data.libraries.load(path) as (data_from, data_to):
+            for attr in dir(data_to):
+                setattr(data_to, attr, getattr(data_from, attr))
+        
         return {'FINISHED'}
 
 
@@ -189,16 +216,17 @@ class FORM_OT_unity_export(bpy.types.Operator):
 
         return {'FINISHED'}
 
+
 classes = (
     PANEL_PT_Panel,
-    MAT_OT_Paint
+    MAT_OT_Paint,
+    FORM_OT_resource_import
 )
 
 def register():
     from bpy.utils import register_class
     for cls in classes:
         register_class(cls)
-
 
 
 def unregister():
