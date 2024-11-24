@@ -1,14 +1,3 @@
-bl_info = {
-    "name": "Rova Tools",
-    "description": "Tools used to make Rova easier.",
-    "author": "Glen Pearce",
-    "version": (1, 0),
-    "blender": (4, 0, 0),
-    "location": "3D Viewport > Sidebar > RovaTools",
-    "warning": "",  # used for warning icon and text in add-ons panel
-    "category": "Development"
-}
-
 import bpy
 import os
 
