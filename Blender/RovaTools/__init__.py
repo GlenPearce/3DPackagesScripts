@@ -33,6 +33,10 @@ class PANEL_PT_Panel(bpy.types.Panel):
         row.operator("form.paint_face", text="Cyan").color = (0, 1, 1, 1)
         row.operator("form.paint_face", text="Purple").color = (1, 0, 1, 1)
         row.operator("form.paint_face", text="Orange").color = (1, 0.5, 0, 1)
+        row = self.layout.row()
+        row.label(text="Bob's Special Button")
+        row = self.layout.row()
+        row.operator("form.bob_mesh_rename", text="Bob's Mesh Rename")
 
 
 class MAT_OT_Paint(bpy.types.Operator):
@@ -123,11 +127,27 @@ class FORM_OT_add_geo_node_modifier(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class FORM_OT_bob_mesh_rename(bpy.types.Operator):
+    bl_idname = "form.bob_mesh_rename"
+    bl_label = "Add Bobs Mesh Renamer"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        for obj in bpy.context.selectable_objects:
+            mesh= obj.data
+            if not mesh.name.startswith("mesh_"):
+                mesh.name = f"Mesh_{obj.name}"
+        return {'FINISHED'}
+
+
+
+
 classes = (
     PANEL_PT_Panel,
     MAT_OT_Paint,
     FORM_OT_resource_import,
-    FORM_OT_add_geo_node_modifier
+    FORM_OT_add_geo_node_modifier,
+    FORM_OT_bob_mesh_rename
 )
 
 def register():
